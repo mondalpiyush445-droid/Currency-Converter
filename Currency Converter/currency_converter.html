@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Currency Converter</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#20261f;
+    --parchment:#f4efdd;
+    --parchment-dim:#e9e1c8;
+    --forest:#0e3b2c;
+    --forest-deep:#082c21;
+    --brass:#c19a3b;
+    --brass-bright:#dcb75a;
+    --line:#c9bd94;
+    --danger:#8a3324;
+  }
+
+  *{box-sizing:border-box;}
+
+  body{
+    margin:0;
+    min-height:100vh;
+    background:var(--forest-deep);
+    background-image:
+      radial-gradient(circle at 20% 15%, rgba(220,183,90,0.06), transparent 40%),
+      radial-gradient(circle at 85% 85%, rgba(220,183,90,0.05), transparent 45%);
+    font-family:'Inter', sans-serif;
+    color:var(--ink);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    padding:32px 16px;
+  }
+
+  /* guilloché-style engraved backdrop lines, evoking banknote printing */
+  .guilloche{
+    position:fixed;
+    inset:0;
+    z-index:0;
+    opacity:0.35;
+    pointer-events:none;
+  }
+
+  .stage{
+    position:relative;
+    z-index:1;
+    width:100%;
+    max-width:480px;
+  }
+
+  .ticket{
+    background:var(--parchment);
+    border-radius:4px;
+    padding:40px 36px 32px;
+    position:relative;
+    box-shadow:0 30px 60px -20px rgba(0,0,0,0.55), 0 0 0 1px rgba(220,183,90,0.25);
+    border:1px solid var(--line);
+  }
+
+  .ticket::before,
+  .ticket::after{
+    content:"";
+    position:absolute;
+    top:16px;
+    bottom:16px;
+    width:1px;
+    background:repeating-linear-gradient(to bottom, var(--brass) 0, var(--brass) 4px, transparent 4px, transparent 9px);
+    opacity:0.55;
+  }
+  .ticket::before{ left:14px; }
+  .ticket::after{ right:14px; }
+
+  .eyebrow{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:11px;
+    letter-spacing:0.22em;
+    text-transform:uppercase;
+    color:var(--forest);
+    text-align:center;
+    opacity:0.65;
+    margin:0 0 6px;
+  }
+
+  h1{
+    font-family:'Fraunces', serif;
+    font-optical-sizing:auto;
+    font-weight:600;
+    font-size:32px;
+    line-height:1.15;
+    text-align:center;
+    margin:0 0 4px;
+    color:var(--forest-deep);
+  }
+
+  .subtitle{
+    text-align:center;
+    font-size:13px;
+    color:#5b5540;
+    margin:0 0 30px;
+  }
+
+  .rule{
+    height:1px;
+    background:linear-gradient(to right, transparent, var(--brass) 15%, var(--brass) 85%, transparent);
+    margin:0 0 28px;
+    opacity:0.5;
+  }
+
+  .panel{
+    position:relative;
+    border:1px solid var(--line);
+    border-radius:3px;
+    background:#fbf8ec;
+    padding:14px 16px 12px;
+  }
+
+  .panel + .panel{ margin-top:14px; }
+
+  .panel-label{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:10px;
+    letter-spacing:0.14em;
+    text-transform:uppercase;
+    color:var(--forest);
+    opacity:0.7;
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    margin-bottom:8px;
+  }
+
+  .panel-label .tag{
+    font-family:'IBM Plex Mono', monospace;
+    background:var(--forest);
+    color:var(--parchment);
+    padding:2px 6px;
+    border-radius:2px;
+    font-size:10px;
+    letter-spacing:0.05em;
+  }
+
+  .row{
+    display:flex;
+    align-items:center;
+    gap:10px;
+  }
+
+  select{
+    flex:0 0 auto;
+    appearance:none;
+    background:transparent;
+    border:none;
+    font-family:'Inter', sans-serif;
+    font-weight:600;
+    font-size:15px;
+    color:var(--forest-deep);
+    padding:6px 20px 6px 2px;
+    cursor:pointer;
+    background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='6'><path d='M0 0 L5 6 L10 0 Z' fill='%230e3b2c'/></svg>");
+    background-repeat:no-repeat;
+    background-position:right 2px center;
+  }
+
+  select:focus-visible{
+    outline:2px solid var(--brass);
+    outline-offset:2px;
+  }
+
+  .divider{
+    width:1px;
+    height:24px;
+    background:var(--line);
+  }
+
+  input[type="text"]{
+    flex:1;
+    border:none;
+    background:transparent;
+    font-family:'IBM Plex Mono', monospace;
+    font-size:22px;
+    font-weight:500;
+    color:var(--forest-deep);
+    text-align:right;
+    padding:4px 2px;
+    min-width:0;
+  }
+
+  input[type="text"]:focus-visible{
+    outline:none;
+  }
+
+  input[readonly]{
+    color:var(--forest);
+  }
+
+  .swap-wrap{
+    display:flex;
+    justify-content:center;
+    margin:-11px 0;
+    position:relative;
+    z-index:2;
+  }
+
+  .swap-btn{
+    width:38px;
+    height:38px;
+    border-radius:50%;
+    background:var(--forest);
+    border:3px solid var(--parchment);
+    color:var(--brass-bright);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    cursor:pointer;
+    box-shadow:0 4px 10px rgba(0,0,0,0.3);
+    transition:transform 0.35s cubic-bezier(.34,1.56,.64,1), background 0.2s;
+  }
+
+  .swap-btn:hover{ background:var(--forest-deep); }
+  .swap-btn:active{ transform:rotate(180deg); }
+  .swap-btn svg{ width:16px; height:16px; }
+
+  .swap-btn.spin{ transform:rotate(180deg); }
+
+  .rate-line{
+    margin-top:22px;
+    text-align:center;
+    font-family:'IBM Plex Mono', monospace;
+    font-size:12.5px;
+    color:var(--forest);
+    opacity:0.85;
+    min-height:16px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap:8px;
+  }
+
+  .status-dot{
+    width:7px;
+    height:7px;
+    border-radius:50%;
+    background:var(--brass);
+    display:inline-block;
+  }
+  .status-dot.live{ background:#3f8a5b; }
+  .status-dot.offline{ background:#8a3324; }
+
+  .footnote{
+    margin-top:18px;
+    text-align:center;
+    font-size:10.5px;
+    color:#8a805c;
+    letter-spacing:0.02em;
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    .swap-btn{ transition:none; }
+  }
+
+  @media (max-width:400px){
+    .ticket{ padding:32px 20px 26px; }
+    h1{ font-size:26px; }
+    input[type="text"]{ font-size:18px; }
+  }
+</style>
+</head>
+<body>
+
+<svg class="guilloche" viewBox="0 0 800 800" preserveAspectRatio="xMidYMid slice">
+  <defs>
+    <pattern id="g1" width="120" height="120" patternUnits="userSpaceOnUse">
+      <circle cx="60" cy="60" r="50" fill="none" stroke="#dcb75a" stroke-width="0.6"/>
+      <circle cx="60" cy="60" r="35" fill="none" stroke="#dcb75a" stroke-width="0.4"/>
+      <circle cx="0" cy="0" r="50" fill="none" stroke="#dcb75a" stroke-width="0.4"/>
+      <circle cx="120" cy="120" r="50" fill="none" stroke="#dcb75a" stroke-width="0.4"/>
+    </pattern>
+  </defs>
+  <rect width="800" height="800" fill="url(#g1)"/>
+</svg>
+
+<div class="stage">
+  <div class="ticket">
+    <p class="eyebrow">Exchange Bureau &middot; No. 001</p>
+    <h1>Currency Converter</h1>
+    <p class="subtitle">Select two currencies to convert between them</p>
+    <div class="rule"></div>
+
+    <div class="panel">
+      <div class="panel-label"><span>You send</span><span class="tag" id="fromTag">USD</span></div>
+      <div class="row">
+        <select id="fromCountry" aria-label="Country to convert from"></select>
+        <div class="divider"></div>
+        <input type="text" id="fromAmount" inputmode="decimal" autocomplete="off" spellcheck="false" value="1" aria-label="Amount to convert">
+      </div>
+    </div>
+
+    <div class="swap-wrap">
+      <button class="swap-btn" id="swapBtn" aria-label="Swap currencies" title="Swap currencies">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M7 10 L3 6 L7 2"/><path d="M3 6 L17 6"/>
+          <path d="M17 14 L21 18 L17 22"/><path d="M21 18 L7 18"/>
+        </svg>
+      </button>
+    </div>
+
+    <div class="panel">
+      <div class="panel-label"><span>Recipient gets</span><span class="tag" id="toTag">INR</span></div>
+      <div class="row">
+        <select id="toCountry" aria-label="Country to convert to"></select>
+        <div class="divider"></div>
+        <input type="text" id="toAmount" readonly aria-label="Converted amount">
+      </div>
+    </div>
+
+    <p class="rate-line"><span class="status-dot" id="statusDot"></span><span id="rateLine"></span></p>
+    <p class="footnote" id="footnote">Fetching live exchange rates&hellip;</p>
+  </div>
+</div>
+
+<script>
+  // Static fallback rates (relative to 1 USD) used only if the live API can't be reached.
+  const fallbackRates = {
+    USD:1, INR:86.4, BDT:121.5, EUR:0.92, GBP:0.78, JPY:148.2,
+    CNY:7.18, AUD:1.52, CAD:1.37, CHF:0.88, SGD:1.30, AED:3.67
+  };
+
+  const countryNames = {
+    USD:"United States", INR:"India", BDT:"Bangladesh", EUR:"European Union",
+    GBP:"United Kingdom", JPY:"Japan", CNY:"China", AUD:"Australia",
+    CAD:"Canada", CHF:"Switzerland", SGD:"Singapore", AED:"UAE"
+  };
+
+  let liveRates = null; // filled in if the API call succeeds
+
+  const fromCountry = document.getElementById("fromCountry");
+  const toCountry = document.getElementById("toCountry");
+  const fromAmount = document.getElementById("fromAmount");
+  const toAmount = document.getElementById("toAmount");
+  const fromTag = document.getElementById("fromTag");
+  const toTag = document.getElementById("toTag");
+  const rateLine = document.getElementById("rateLine");
+  const statusDot = document.getElementById("statusDot");
+  const footnote = document.getElementById("footnote");
+  const swapBtn = document.getElementById("swapBtn");
+
+  function populate(select, defaultCode){
+    Object.keys(countryNames).forEach(code=>{
+      const opt = document.createElement("option");
+      opt.value = code;
+      opt.textContent = `${countryNames[code]} — ${code}`;
+      if(code === defaultCode) opt.selected = true;
+      select.appendChild(opt);
+    });
+  }
+
+  populate(fromCountry, "USD");
+  populate(toCountry, "INR");
+
+  function getRate(code){
+    const table = liveRates || fallbackRates;
+    return table[code] ?? fallbackRates[code];
+  }
+
+  function formatNumber(n){
+    if(!isFinite(n)) return "";
+    return n.toLocaleString(undefined, { maximumFractionDigits: 2, minimumFractionDigits: 2 });
+  }
+
+  function convert(){
+    const fromCode = fromCountry.value;
+    const toCode = toCountry.value;
+    fromTag.textContent = fromCode;
+    toTag.textContent = toCode;
+
+    // keep only digits and a single decimal point as the user types
+    const raw = fromAmount.value.replace(/[^0-9.]/g, "");
+    const amount = parseFloat(raw);
+
+    const fromRate = getRate(fromCode);
+    const toRate = getRate(toCode);
+    const unitRate = toRate / fromRate;
+
+    if(!isNaN(amount)){
+      toAmount.value = formatNumber(amount * unitRate);
+    } else {
+      toAmount.value = "";
+    }
+
+    rateLine.textContent = `1 ${fromCode} = ${formatNumber(unitRate)} ${toCode}`;
+  }
+
+  fromCountry.addEventListener("change", convert);
+  toCountry.addEventListener("change", convert);
+  fromAmount.addEventListener("input", convert);
+  fromAmount.addEventListener("keyup", convert);
+
+  swapBtn.addEventListener("click", ()=>{
+    const f = fromCountry.value;
+    const t = toCountry.value;
+    fromCountry.value = t;
+    toCountry.value = f;
+    swapBtn.classList.toggle("spin");
+    convert();
+  });
+
+  // Free, no-key exchange rate API (open.er-api.com). Falls back to static
+  // rates above if the request fails for any reason (offline, blocked, etc).
+  async function loadLiveRates(){
+    try{
+      const res = await fetch("https://open.er-api.com/v6/latest/USD");
+      if(!res.ok) throw new Error("Bad response");
+      const data = await res.json();
+      if(data.result !== "success" || !data.rates) throw new Error("Bad payload");
+
+      const table = { USD:1 };
+      Object.keys(countryNames).forEach(code=>{
+        if(data.rates[code] !== undefined) table[code] = data.rates[code];
+      });
+      liveRates = table;
+
+      statusDot.className = "status-dot live";
+      const updated = data.time_last_update_utc ? new Date(data.time_last_update_utc) : null;
+      footnote.textContent = updated
+        ? `Live rates &middot; updated ${updated.toLocaleDateString()}`.replace("&middot;","·")
+        : "Live exchange rates";
+    }catch(err){
+      statusDot.className = "status-dot offline";
+      footnote.textContent = "Live rates unavailable — showing fixed demo rates";
+    }
+    convert();
+  }
+
+  statusDot.className = "status-dot";
+  convert();
+  loadLiveRates();
+</script>
+
+</body>
+</html>
